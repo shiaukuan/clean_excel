@@ -4,17 +4,20 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 import re
-import operator
 
 import xlrd
 
+# 中文
 data = xlrd.open_workbook('Survey_raw_data_2015011211304403825.xls')
+
+# 英文
+# data = xlrd.open_workbook('Survey_raw_data_2015011211415963032.xls')
 table = data.sheet_by_name('raw data')
 
 
 import xlsxwriter
 
-outxlsx = 'cleandata.xlsx'
+outxlsx = 'clean_cn_data.xlsx'
 workbook = xlsxwriter.Workbook(outxlsx)
 worksheet = workbook.add_worksheet('clean data')
 
@@ -119,25 +122,33 @@ def mapcol(qcol,move,worksheet,rule):
 
 icol=0
 move=0
+not_clean=['EMail','Name','Address','Zip Code','Tel','Country','Filling Data','Case NO','IP','建議','suggestion']
+
+
 while icol< table.ncols:
     qname=table.cell_value(0,icol)
     colval=table.col_values(icol)
-    if qname in ['Country','年齡']:
-        move=mapcol(colval,move,worksheet,"")
-    # 有問號的
-    elif '?' in qname or '？'.decode('utf8') in qname:
+
+    noclean=False
+    for no in not_clean:
+        if no in qname:
+            noclean=True
+            break
+
+    # if qname in ['Country','年齡']:
+    #     move=mapcol(colval,move,worksheet,"")
+    if noclean:
+        worksheet.write_column(0, move, colval)
+    else:
         if 'Please score each item' in qname or '本題每項都需要勾選一個分數' in qname:
             move=qms(colval,move,worksheet)
         elif 'Select all that apply' in qname or '複選' in qname:
             move=qm(colval,move,worksheet)
         else:
             move=q1(colval,move,worksheet)
-    else:
-        worksheet.write_column(0, move, colval)
+
     icol+=1
     move+=1
 
 workbook.close()
-
-
 
